@@ -1,0 +1,81 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:context="http://www.springframework.org/schema/context"
+	xmlns:int="http://www.springframework.org/schema/integration"
+	xmlns:amq="http://activemq.apache.org/schema/core" xmlns:int-jms="http://www.springframework.org/schema/integration/jms"
+
+	xsi:schemaLocation="http://www.springframework.org/schema/beans
+			http://www.springframework.org/schema/beans/spring-beans.xsd
+			http://www.springframework.org/schema/context 
+			http://www.springframework.org/schema/context/spring-context-3.0.xsd
+			           http://www.springframework.org/schema/integration
+           http://www.springframework.org/schema/integration/spring-integration.xsd
+           http://www.springframework.org/schema/integration/jms
+			http://www.springframework.org/schema/integration/jms/spring-integration-jms.xsd
+           http://activemq.apache.org/schema/core 
+           http://activemq.apache.org/schema/core/activemq-core-5.12.0.xsd">
+
+
+	<context:annotation-config />
+	<!-- scans for annotated classes in the com.company package -->
+	<context:component-scan base-package="com.mycompany.SpringIntCron" />
+
+	<int:inbound-channel-adapter ref="WhatsTheTime"
+		method="getTimeStamp" channel="channel1">
+		<int:poller fixed-rate="5000" />
+	</int:inbound-channel-adapter>
+	<int:channel id="channel1" />
+
+	<int:recipient-list-router id="customRouter"
+		input-channel="channel1" timeout="1000" ignore-send-failures="true"
+		apply-sequence="true">
+		<int:recipient channel="channel2" />
+		<int:recipient channel="channel3" />
+	</int:recipient-list-router>
+
+	<int:channel id="channel2" />
+	<int:channel id="channel3" />
+
+
+	<int:outbound-channel-adapter ref="print"
+		method="printTimeStamp" channel="channel2">
+
+	</int:outbound-channel-adapter>
+
+	<amq:connectionFactory id="amqConnectionFactory"
+		brokerURL="tcp://localhost:61616" userName="admin" password="admin" />
+	<!-- CachingConnectionFactory Definition, sessionCacheSize property is the 
+		number of sessions to cache -->
+	<bean id="connectionFactory"
+		class="org.springframework.jms.connection.CachingConnectionFactory">
+		<constructor-arg ref="amqConnectionFactory" />
+		<property name="sessionCacheSize" value="100" />
+	</bean>
+	<!-- JmsTemplate Definition -->
+	<bean id="jmsTemplate" class="org.springframework.jms.core.JmsTemplate">
+		<constructor-arg ref="connectionFactory" />
+	</bean>
+
+
+	<bean id="requestQueue" class="org.apache.activemq.command.ActiveMQQueue">
+		<constructor-arg value="Q2" />
+	</bean>
+
+	<int-jms:outbound-channel-adapter id="jmsOut"
+		destination="requestQueue" channel="channel3" />
+
+	<int-jms:message-driven-channel-adapter
+		id="jmsIn" destination="requestQueue" channel="Channel4" />
+	<int:channel id="Channel4" />
+	
+	<int:transformer id="testTransformer" ref="transformer" input-channel="Channel4"
+             method="tranform" output-channel="Channel5"/>
+             
+    <int:channel id="Channel5" />
+
+	<int:outbound-channel-adapter ref="print"
+		method="printTimeStamp" channel="Channel5">
+
+	</int:outbound-channel-adapter>
+
+</beans>
