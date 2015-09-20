@@ -3,7 +3,8 @@
 	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:context="http://www.springframework.org/schema/context"
 	xmlns:int="http://www.springframework.org/schema/integration"
 	xmlns:amq="http://activemq.apache.org/schema/core" xmlns:int-jms="http://www.springframework.org/schema/integration/jms"
-
+	xmlns:int-mail="http://www.springframework.org/schema/integration/mail"
+	
 	xsi:schemaLocation="http://www.springframework.org/schema/beans
 			http://www.springframework.org/schema/beans/spring-beans.xsd
 			http://www.springframework.org/schema/context 
@@ -13,7 +14,9 @@
            http://www.springframework.org/schema/integration/jms
 			http://www.springframework.org/schema/integration/jms/spring-integration-jms.xsd
            http://activemq.apache.org/schema/core 
-           http://activemq.apache.org/schema/core/activemq-core-5.12.0.xsd">
+           http://activemq.apache.org/schema/core/activemq-core-5.12.0.xsd
+           http://www.springframework.org/schema/integration/mail http://www.springframework.org/schema/integration/mail/spring-integration-mail.xsd
+           ">
 
 
 	<context:annotation-config />
@@ -72,10 +75,28 @@
              method="tranform" output-channel="Channel5"/>
              
     <int:channel id="Channel5" />
-
+<!-- 
 	<int:outbound-channel-adapter ref="print"
 		method="printTimeStamp" channel="Channel5">
+		
 
-	</int:outbound-channel-adapter>
+	</int:outbound-channel-adapter> -->
+	
+	    <bean id="mailSender" class="org.springframework.mail.javamail.JavaMailSenderImpl">
+        <property name="host" value="smtp.gmail.com" />
+        <property name="port" value="587" />
+        <property name="username" value="uid" />
+        <property name="password" value="pwd" />
+        <property name="javaMailProperties">
+            <props>
+              
+                <prop key="mail.smtp.auth">true</prop>
+                <prop key="mail.smtp.starttls.enable">true</prop>
+            </props>
+        </property>
+    </bean>
+    
+    <int-mail:outbound-channel-adapter channel="Channel5"
+    mail-sender="mailSender"/>
 
 </beans>
